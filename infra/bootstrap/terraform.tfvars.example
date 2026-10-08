@@ -1,0 +1,8 @@
+# Copy to terraform.tfvars (gitignored): it contains the account ID.
+dev_principal = "arn:aws:iam::<account-id>:user/<your-user>"
+# Cohort label = IAM group name. Same map as [cohort_groups] in dashboard.toml and in
+# infra/app/terraform.tfvars. If they drift, GetGroup is denied and the page names the group.
+cohort_groups = {
+  "DV_FT" = "DV_FT"
+  "DV_PT" = "DV_PT"
+}
