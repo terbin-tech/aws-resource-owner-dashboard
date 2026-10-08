@@ -1,0 +1,113 @@
+{
+  "run_instances": {
+    "eventSource": "ec2.amazonaws.com",
+    "eventName": "RunInstances",
+    "requestParameters": {"instanceType": "t3.micro"},
+    "responseElements": {
+      "reservationId": "r-0example0000000a1",
+      "instancesSet": {"items": [{"instanceId": "i-0example0000000a1", "instanceType": "t3.micro"}]}
+    },
+    "eventID": "e-run-instances"
+  },
+  "run_instances_failed": {
+    "eventSource": "ec2.amazonaws.com",
+    "eventName": "RunInstances",
+    "errorCode": "Client.UnauthorizedOperation",
+    "errorMessage": "You are not authorized to perform this operation.",
+    "requestParameters": {"instanceType": "t3.micro"},
+    "responseElements": null,
+    "eventID": "e-run-failed"
+  },
+  "run_instances_dry_run": {
+    "eventSource": "ec2.amazonaws.com",
+    "eventName": "RunInstances",
+    "errorCode": "Client.DryRunOperation",
+    "errorMessage": "Request would have succeeded, but DryRun flag is set.",
+    "requestParameters": {"instanceType": "t3.micro"},
+    "responseElements": null,
+    "eventID": "e-run-dry"
+  },
+  "create_volume": {
+    "eventSource": "ec2.amazonaws.com",
+    "eventName": "CreateVolume",
+    "requestParameters": {"size": "8", "volumeType": "gp3"},
+    "responseElements": {"volumeId": "vol-0example0000000a1", "size": "8", "volumeType": "gp3"},
+    "eventID": "e-create-volume"
+  },
+  "allocate_address": {
+    "eventSource": "ec2.amazonaws.com",
+    "eventName": "AllocateAddress",
+    "requestParameters": {"domain": "vpc"},
+    "responseElements": {"publicIp": "192.0.2.10", "allocationId": "eipalloc-0example00000a1", "domain": "vpc"},
+    "eventID": "e-allocate-address"
+  },
+  "create_nat_gateway": {
+    "eventSource": "ec2.amazonaws.com",
+    "eventName": "CreateNatGateway",
+    "requestParameters": {"CreateNatGatewayRequest": {"SubnetId": "subnet-0example00000a1"}},
+    "responseElements": {
+      "CreateNatGatewayResponse": {"natGateway": {"natGatewayId": "nat-0example0000000a1", "state": "pending"}}
+    },
+    "eventID": "e-create-nat"
+  },
+  "create_lb_classic": {
+    "eventSource": "elasticloadbalancing.amazonaws.com",
+    "eventName": "CreateLoadBalancer",
+    "apiVersion": "2012-06-01",
+    "requestParameters": {"loadBalancerName": "demo-classic"},
+    "responseElements": {"dNSName": "demo-classic-1.eu-central-1.elb.amazonaws.com"},
+    "eventID": "e-create-clb"
+  },
+  "create_lb_v2": {
+    "eventSource": "elasticloadbalancing.amazonaws.com",
+    "eventName": "CreateLoadBalancer",
+    "apiVersion": "2015-12-01",
+    "requestParameters": {"name": "demo-alb", "type": "application"},
+    "responseElements": {
+      "loadBalancers": [{
+        "loadBalancerArn": "arn:aws:elasticloadbalancing:eu-central-1:111122223333:loadbalancer/app/demo-alb/0123456789abcdef",
+        "loadBalancerName": "demo-alb"
+      }]
+    },
+    "eventID": "e-create-alb"
+  },
+  "create_cluster": {
+    "eventSource": "eks.amazonaws.com",
+    "eventName": "CreateCluster",
+    "requestParameters": {"name": "demo-eks"},
+    "responseElements": {
+      "cluster": {"name": "demo-eks", "arn": "arn:aws:eks:eu-central-1:111122223333:cluster/demo-eks", "status": "CREATING"}
+    },
+    "eventID": "e-create-cluster"
+  },
+  "create_nodegroup": {
+    "eventSource": "eks.amazonaws.com",
+    "eventName": "CreateNodegroup",
+    "requestParameters": {"name": "demo-eks", "nodegroupName": "ng-1"},
+    "responseElements": {
+      "nodegroup": {
+        "nodegroupName": "ng-1",
+        "clusterName": "demo-eks",
+        "nodegroupArn": "arn:aws:eks:eu-central-1:111122223333:nodegroup/demo-eks/ng-1/00000000-1111-2222-3333-aaaabbbbcccc"
+      }
+    },
+    "eventID": "e-create-nodegroup"
+  },
+  "create_asg": {
+    "eventSource": "autoscaling.amazonaws.com",
+    "eventName": "CreateAutoScalingGroup",
+    "requestParameters": {"autoScalingGroupName": "demo-asg", "minSize": 1, "maxSize": 2},
+    "responseElements": null,
+    "eventID": "e-create-asg"
+  },
+  "create_user": {
+    "eventSource": "iam.amazonaws.com",
+    "eventName": "CreateUser",
+    "awsRegion": "us-east-1",
+    "requestParameters": {"userName": "student-a-test"},
+    "responseElements": {
+      "user": {"userName": "student-a-test", "userId": "AIDAEXAMPLEUSERB", "arn": "arn:aws:iam::111122223333:user/student-a-test"}
+    },
+    "eventID": "e-create-user"
+  }
+}
