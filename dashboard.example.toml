@@ -1,0 +1,9 @@
+# Copy to dashboard.toml (gitignored) and fill in. Never commit the real file.
+# Regions and thresholds live in the committed settings.json (shared with Terraform).
+# This file holds only the account values for local runs.
+
+roster_path = "roster.csv"  # optional, gitignored
+
+[cohort_groups]  # cohort label = IAM group name; same map as cohort_groups in both terraform.tfvars
+"DV_FT" = "DV_FT"
+"DV_PT" = "DV_PT"

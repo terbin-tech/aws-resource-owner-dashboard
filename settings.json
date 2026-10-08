@@ -1,0 +1,5 @@
+{
+  "regions": ["us-east-1", "eu-central-1"],
+  "max_age_days": 4,
+  "lookback_days": 90
+}
