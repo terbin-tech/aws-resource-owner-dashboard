@@ -1,0 +1,25 @@
+title = "aws-resource-owner-dashboard"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "aws-account-id"
+description = "12-digit AWS account ID (the repo is public)"
+regex = '''(?:^|[^0-9])([0-9]{12})(?:[^0-9]|$)'''
+secretGroup = 1
+keywords = []
+
+[[rules.allowlists]]
+description = "Placeholder account IDs used in the AWS documentation"
+regexes = ['''111122223333''', '''123456789012''']
+
+[[rules.allowlists]]
+description = "Provider hashes in the Terraform lock file are not account IDs"
+paths = ['''(^|/)\.terraform\.lock\.hcl$''']
+
+[[rules]]
+id = "aws-resource-id"
+description = "Real EC2/VPC resource IDs (17 hex digits). Placeholders contain 'example' and do not match."
+regex = '''\b(?:i|vol|eni|eipalloc|eipassoc|nat|snap|sg|subnet|vpc|rtb|igw)-[0-9a-f]{17}\b'''
+keywords = ["i-", "vol-", "eni-", "eipalloc-", "eipassoc-", "nat-", "snap-", "sg-", "subnet-", "vpc-", "rtb-", "igw-"]
