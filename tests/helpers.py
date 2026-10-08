@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import boto3
 from botocore.stub import Stubber
 
-from dashboard.attribution import Creation, Principal
+from dashboard.attribution import Creation, LookupResult, Owner, Principal, event_names
 from dashboard.collectors.base import Resource
+from dashboard.people import Person
+from dashboard.pipeline import Card, Report, Row, ScanData
 
 T0 = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
+NOW = T0 + timedelta(days=1)
 ACCOUNT = "111122223333"
 FIXTURES = json.loads((Path(__file__).parent / "fixtures" / "events.json").read_text())
 
@@ -76,6 +79,7 @@ class FakeAws:
             stubber.assert_no_pending_responses()
 
 
+INSTANCE = "i-0example0000000a1"
 IAM_USER = {
     "Path": "/",
     "UserName": "student-a",
@@ -97,6 +101,49 @@ def group_response(name: str) -> dict:
         },
         "Users": [IAM_USER],
     }
+
+
+def stub_account(aws: FakeAws, region: str = "us-east-1") -> None:
+    """Stub every call one full scan makes: one running instance that student-a made."""
+    ec2 = aws.stub("ec2", region)
+    ec2.add_response(
+        "describe_instances",
+        {
+            "Reservations": [
+                {
+                    "Instances": [
+                        {
+                            "InstanceId": INSTANCE,
+                            "InstanceType": "t3.micro",
+                            "State": {"Name": "running", "Code": 16},
+                            "LaunchTime": NOW - timedelta(days=10),
+                            "Tags": [{"Key": "Name", "Value": "web"}],
+                        }
+                    ]
+                }
+            ]
+        },
+    )
+    ec2.add_response("describe_volumes", {"Volumes": []})
+    ec2.add_response("describe_nat_gateways", {"NatGateways": []})
+    ec2.add_response("describe_addresses", {"Addresses": []})
+    ec2.add_response("describe_network_interfaces", {"NetworkInterfaces": []})
+    aws.stub("elb", region).add_response(
+        "describe_load_balancers", {"LoadBalancerDescriptions": []}
+    )
+    aws.stub("elbv2", region).add_response("describe_load_balancers", {"LoadBalancers": []})
+    aws.stub("eks", region).add_response("list_clusters", {"clusters": []})
+    aws.stub("autoscaling", region).add_response(
+        "describe_auto_scaling_groups", {"AutoScalingGroups": []}
+    )
+    trail = aws.stub("cloudtrail", region)
+    created = event("run_instances", eventTime=(NOW - timedelta(days=10)).isoformat())
+    trail.add_response("lookup_events", {"Events": [raw(created)]})
+    for _ in event_names(include_global=True)[1:]:
+        trail.add_response("lookup_events", {"Events": []})
+    iam = aws.stub("iam", region)
+    iam.add_response("list_users", {"Users": [IAM_USER]})
+    iam.add_response("get_group", group_response("DV_FT"), {"GroupName": "DV_FT"})
 
 
 def res(kind, id, region="eu-central-1", *, name="", created_at=T0, tags=None, **attrs) -> Resource:
@@ -123,3 +170,52 @@ def creation(
         resource_id=id,
         principal=principal or Principal("user", user),
     )
+
+
+def make_scan(resources=(), creations=(), users=(), members=None, failed=(), now=NOW) -> ScanData:
+    lookups = [
+        LookupResult(
+            region=r,
+            creations=[c for c in creations if c.region == r],
+            failed=r in failed,
+            error="AccessDenied" if r in failed else "",
+        )
+        for r in ("us-east-1", "eu-central-1")
+    ]
+    return ScanData(
+        generated_at=now,
+        regions=["us-east-1", "eu-central-1"],
+        resources=list(resources),
+        incomplete=[],
+        lookups=lookups,
+        users=list(users),
+        members=members or {},
+        lookback_days=90,
+    )
+
+
+def make_row(
+    resource, user="student-a", cohort="DV_FT", age_days=1, method="event", detail=""
+) -> Row:
+    principal = Principal("user", user) if user else None
+    person = Person(user, user, cohort) if user else None
+    return Row(resource, Owner(principal, method, detail), person, age_days)
+
+
+def make_report(rows=(), cards=None, **overrides) -> Report:
+    rows = list(rows)
+    if cards is None:
+        cards = [Card(r.card, r.cohort, [r]) for r in rows if r.card]
+    fields = {
+        "generated_at": NOW,
+        "regions": ["us-east-1", "eu-central-1"],
+        "rows": rows,
+        "cards": cards,
+        "unknown": [],
+        "orphaned": [],
+        "incomplete": [],
+        "unmapped_users": 0,
+        "roster_loaded": True,
+        "cohorts": sorted({c.cohort for c in cards if c.cohort}),
+    }
+    return Report(**(fields | overrides))
