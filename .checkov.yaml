@@ -1,0 +1,24 @@
+# Checks skipped on purpose, each with its reason.
+compact: true
+quiet: true
+skip-check:
+  - CKV_AWS_18   # S3 server access logging: only admins and the Lambda reach these buckets, and logs would not stop an admin
+  - CKV_AWS_144  # S3 cross-region replication: the page is rebuilt twice a day; the state bucket is versioned and admin-only
+  - CKV_AWS_145  # S3 SSE-KMS: SSE-S3 instead; a customer managed key adds cost and key management for no gain here
+  - CKV2_AWS_62  # S3 event notifications: nothing consumes them
+  - CKV_AWS_50   # Lambda X-Ray tracing: one function that only calls AWS read APIs; its JSON logs and alarms show what failed
+  - CKV_AWS_115  # Lambda reserved concurrency: only the schedule invokes it, twice a day; an overlapping run rewrites the same page
+  - CKV_AWS_116  # Lambda DLQ: a failed run is not replayed; the next scheduled run replaces the page and the errors alarm fires
+  - CKV_AWS_117  # Lambda in a VPC: it calls only public AWS APIs; a VPC would need a NAT gateway
+  - CKV_AWS_173  # Lambda env var KMS: the values are settings, not secrets
+  - CKV_AWS_272  # Lambda code signing: an admin signed in with MFA builds and deploys the zip locally; CI has no AWS access
+  - CKV_AWS_158  # Log group KMS: no customer managed keys in this stack (cost); logs are kept 30 days
+  - CKV_AWS_338  # Log retention of 1 year: 30 days on purpose, enough to debug recent runs and short in case a log ever holds a username
+  - CKV_AWS_297  # Scheduler schedule CMK: no customer managed keys in this stack (cost); the only payload is `{}`
+  - CKV_AWS_26   # SNS encryption: CloudWatch can't publish to an aws/sns-encrypted topic
+  # IAM "*" resource in the read policy: read-only Describe/List actions, most of which
+  # (ec2:Describe*, eks:ListClusters, autoscaling:Describe*, cloudtrail:LookupEvents)
+  # don't support resource-level permissions; all are account-wide
+  # inventory reads on purpose, limited to the configured regions by aws:RequestedRegion. See
+  # https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonelastickubernetesservice.html
+  - CKV_AWS_356

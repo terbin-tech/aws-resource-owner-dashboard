@@ -10,8 +10,14 @@ repos:
     rev: 2ca41cc1372d1e939a6a879f18cdc19fc1cac1ce  # frozen: v8.30.0
     hooks:
       - id: gitleaks
+      # The hook above scans only staged changes, and CI has none, so CI runs this one on the whole history.
+      - id: gitleaks
+        name: gitleaks (whole git history; CI)
+        entry: gitleaks git --redact --verbose
+        stages: [manual]
   - repo: local
     hooks:
+      # Local only: .denylist is gitignored, so CI has none, and their stages keep them out of CI's manual run.
       - id: check-denylist
         name: private terms (.denylist)
         entry: python scripts/check_denylist.py
@@ -23,3 +29,16 @@ repos:
         entry: python scripts/check_denylist.py
         language: system
         stages: [commit-msg]
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: 80c8033123f6d6b9ccd1a9458562ea4180742af7  # frozen: v1.109.2
+    hooks:
+      - id: terraform_fmt
+      - id: terraform_validate
+      # tflint and checkov need their own binaries: CI runs them (--hook-stage manual);
+      # locally run `pre-commit run --all-files --hook-stage manual` when they're installed.
+      - id: terraform_tflint
+        args: [--args=--config=__GIT_WORKING_DIR__/.tflint.hcl]
+        stages: [manual]
+      - id: terraform_checkov
+        args: [--args=--config-file __GIT_WORKING_DIR__/.checkov.yaml]
+        stages: [manual]
