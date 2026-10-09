@@ -1,0 +1,6 @@
+# Copy to backend.hcl (gitignored). Same state bucket as infra/bootstrap, own key.
+bucket       = "resource-owner-dashboard-tfstate-<account-id>-us-east-1-an"
+key          = "app/terraform.tfstate"
+region       = "us-east-1"
+use_lockfile = true
+encrypt      = true

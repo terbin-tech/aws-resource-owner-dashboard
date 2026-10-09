@@ -1,0 +1,8 @@
+# Copy to terraform.tfvars (gitignored). Never commit the real file.
+# Cohort label = IAM group name; same map as in dashboard.toml and infra/bootstrap/terraform.tfvars.
+cohort_groups = {
+  "DV_FT" = "DV_FT"
+  "DV_PT" = "DV_PT"
+}
+# alarm_email = "<teacher-list>@example.com"  # optional: off by default, no emails leave the account
+schedule_enabled = true # the kill switch, see README.md
