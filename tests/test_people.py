@@ -1,6 +1,8 @@
 from datetime import timedelta
+from io import BytesIO
 
 import pytest
+from botocore.response import StreamingBody
 
 from dashboard.people import (
     IamUser,
@@ -8,6 +10,7 @@ from dashboard.people import (
     RosterError,
     fetch_iam,
     load_roster_file,
+    load_roster_s3,
     map_people,
     parse_roster,
 )
@@ -159,3 +162,53 @@ def test_parse_roster_rejects_a_primary_username_that_is_no_username(primary):
 def test_primary_username_may_name_another_roster_row():
     text = "username,primary_username,cohort\nlab user,lab user,DV_FT\nstudent-a,lab user,DV_FT\n"
     assert parse_roster(text)["student-a"] == ("lab user", "DV_FT")
+
+
+BUCKET = "example-report-bucket"
+KEY = "config/roster.csv"
+
+
+def _s3_with(body=None, error=None):
+    aws = FakeAws()
+    stub = aws.stub("s3")
+    params = {"Bucket": BUCKET, "Key": KEY}
+    if error:
+        status = {"AccessDenied": 403, "NoSuchKey": 404}.get(error, 503)
+        stub.add_client_error(
+            "get_object", service_error_code=error, http_status_code=status, expected_params=params
+        )
+    else:
+        stub.add_response("get_object", {"Body": StreamingBody(BytesIO(body), len(body))}, params)
+    return aws.client("s3", "us-east-1")
+
+
+@pytest.mark.parametrize("code", ["NoSuchKey", "AccessDenied"])
+def test_s3_roster_absent_or_denied_is_no_roster(code):
+    assert load_roster_s3(_s3_with(error=code), BUCKET, KEY) == (None, None)
+
+
+def test_s3_roster_is_parsed():
+    body = b"username,primary_username,cohort\nstudent-a,student-a,DV_FT\n"
+    assert load_roster_s3(_s3_with(body), BUCKET, KEY) == (
+        {"student-a": ("student-a", "DV_FT")},
+        None,
+    )
+
+
+def test_bad_s3_roster_is_reported_without_usernames():
+    body = (
+        b"username,primary_username,cohort\nstudent-a,student-a,DV_FT\nstudent-a,student-a,DV_FT\n"
+    )
+    assert load_roster_s3(_s3_with(body), BUCKET, KEY) == (
+        None,
+        "roster: line 3: duplicate username",
+    )
+
+
+def test_s3_roster_that_is_not_utf8_is_reported():
+    body = b"username,primary_username,cohort\n\xff\xfe,x,DV_FT\n"
+    assert load_roster_s3(_s3_with(body), BUCKET, KEY) == (None, "roster: not UTF-8")
+
+
+def test_other_s3_errors_are_reported():
+    assert load_roster_s3(_s3_with(error="SlowDown"), BUCKET, KEY) == (None, "roster: SlowDown")

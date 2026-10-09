@@ -3,8 +3,8 @@
 Non-account values (regions, max age, lookback) live in the committed settings.json,
 which Terraform reads too. Config's defaults repeat them for the tests, and a test
 checks that the two agree.
-Account values stay out of the repo, in the gitignored dashboard.toml (cohort_groups,
-roster_path).
+Account values stay out of the repo: the gitignored dashboard.toml (cohort_groups,
+roster_path) for local runs, DASHBOARD_* environment variables for the Lambda.
 """
 
 from __future__ import annotations
@@ -30,6 +30,7 @@ SETTINGS_KEYS = frozenset({"regions", "max_age_days", "lookback_days"})
 LOCAL_KEYS = frozenset({"cohort_groups", "roster_path"})
 # Used with fullmatch. [0-9] because \d also matches non-ASCII digits.
 REGION_RE = re.compile(r"[a-z]{2}(-[a-z]+)+-[0-9]")
+_BUCKET_RE = re.compile(r"[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]")
 
 BOTO_CONFIG = BotoConfig(
     retries={"mode": "standard", "total_max_attempts": 8},
@@ -38,7 +39,7 @@ BOTO_CONFIG = BotoConfig(
 
 
 class ConfigError(ValueError):
-    """Invalid settings or local config file."""
+    """Invalid settings, local config file or environment value."""
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,7 @@ class Config:
     max_age_days: int = 4  # most labs take 2 days or less
     lookback_days: int = 90
     roster_path: str | None = None
+    bucket: str | None = None  # the report bucket (Lambda only)
 
 
 def _is_int(value: object) -> bool:
@@ -61,8 +63,9 @@ def _build(
     lookback_days: Any,
     cohort_groups: Any,
     roster_path: str | None = None,
+    bucket: str | None = None,
 ) -> Config:
-    """Validate the settings and local values and build the Config."""
+    """The one validator for both entry points (files and environment)."""
     if not isinstance(regions, list | tuple) or not regions:
         raise ConfigError("regions must be a non-empty list")
     regions = tuple(regions)
@@ -85,6 +88,7 @@ def _build(
         max_age_days=max_age_days,
         lookback_days=lookback_days,
         roster_path=roster_path,
+        bucket=bucket,
     )
 
 
@@ -119,6 +123,36 @@ def load_config(
         **load_settings(settings_path),
         cohort_groups=local.get("cohort_groups", {}),
         roster_path=local.get("roster_path"),
+    )
+
+
+def config_from_env(env: Mapping[str, str] = os.environ) -> Config:
+    """The Lambda: every value from the DASHBOARD_* variables that infra/app sets."""
+    names = (
+        "regions",
+        "max_age_days",
+        "lookback_days",
+        "cohort_groups",
+        "bucket",
+    )
+    try:
+        raw = {name: env[f"DASHBOARD_{name.upper()}"] for name in names}
+    except KeyError as exc:
+        raise ConfigError(f"missing environment variable {exc.args[0]}") from None
+    try:
+        max_age_days = int(raw["max_age_days"])
+        lookback_days = int(raw["lookback_days"])
+        cohort_groups = json.loads(raw["cohort_groups"])
+    except ValueError:  # json.JSONDecodeError is a ValueError too
+        raise ConfigError("DASHBOARD_* numbers or the cohort groups JSON are malformed") from None
+    if not _BUCKET_RE.fullmatch(raw["bucket"]):
+        raise ConfigError("DASHBOARD_BUCKET is not a bucket name")
+    return _build(
+        regions=[r.strip() for r in raw["regions"].split(",")],
+        max_age_days=max_age_days,
+        lookback_days=lookback_days,
+        cohort_groups=cohort_groups,
+        bucket=raw["bucket"],
     )
 
 

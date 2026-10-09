@@ -7,6 +7,7 @@ from dashboard.config import (
     Aws,
     Config,
     ConfigError,
+    config_from_env,
     load_config,
     load_settings,
     per_region,
@@ -17,6 +18,13 @@ GOOD = {
     "regions": ["us-east-1", "eu-central-1"],
     "max_age_days": 4,
     "lookback_days": 90,
+}
+ENV = {
+    "DASHBOARD_REGIONS": "us-east-1,eu-central-1",
+    "DASHBOARD_MAX_AGE_DAYS": "4",
+    "DASHBOARD_LOOKBACK_DAYS": "90",
+    "DASHBOARD_COHORT_GROUPS": '{"DV_FT": "DV_FT"}',
+    "DASHBOARD_BUCKET": "example-report-bucket",
 }
 
 
@@ -91,6 +99,28 @@ def test_rejects_bad_region_lists(tmp_path, regions):
 def test_rejects_bad_numbers(tmp_path, change):
     with pytest.raises(ConfigError):
         load_config(settings_path=_settings(tmp_path, **change))
+
+
+def test_config_from_env_matches_the_files():
+    assert config_from_env(ENV) == Config(
+        cohort_groups={"DV_FT": "DV_FT"}, bucket="example-report-bucket"
+    )
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"DASHBOARD_BUCKET": None},
+        {"DASHBOARD_COHORT_GROUPS": "[1]"},
+        {"DASHBOARD_MAX_AGE_DAYS": "four"},
+        {"DASHBOARD_REGIONS": "us-east-1,eu-north"},
+    ],
+    ids=["missing", "groups-not-object", "not-a-number", "bad-region"],
+)
+def test_config_from_env_rejects_bad_values(change):
+    env = {k: v for k, v in (ENV | change).items() if v is not None}
+    with pytest.raises(ConfigError):
+        config_from_env(env)
 
 
 def test_per_region_returns_one_result_per_region():

@@ -84,6 +84,29 @@ def load_roster_file(path: str | None) -> Roster | None:
         return parse_roster(fh.read())
 
 
+def load_roster_s3(s3: Any, bucket: str, key: str) -> tuple[Roster | None, str | None]:
+    """Read the Lambda's roster from config/ in the report bucket.
+
+    Without s3:ListBucket a missing object is AccessDenied, so both mean "no roster", and
+    the page does not mention it. Any other error becomes an incomplete banner, never a
+    crash.
+    """
+    try:
+        body = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
+    except ClientError as exc:
+        if error_code(exc) in ("NoSuchKey", "AccessDenied", "403", "404"):
+            return None, None
+        return None, f"roster: {error_code(exc)}"
+    except BotoCoreError as exc:
+        return None, f"roster: {error_code(exc)}"
+    try:
+        return parse_roster(body.decode("utf-8")), None
+    except UnicodeDecodeError:
+        return None, "roster: not UTF-8"
+    except RosterError as exc:
+        return None, f"roster: {exc}"
+
+
 def fetch_iam(
     aws: Any, cohort_groups: Mapping[str, str]
 ) -> tuple[list[IamUser], dict[str, list[str]], list[str]]:
