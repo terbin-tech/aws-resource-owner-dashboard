@@ -15,6 +15,9 @@ banner warns when the page is more than 26 hours old.
 
 ## What's in the repo
 
+How the dashboard works, step by step, and what each part of the page means:
+[docs/FAQ.md](docs/FAQ.md).
+
 - `src/dashboard/`: the Python code that scans, finds owners and cohorts, and renders the page.
   The same code runs as a local CLI (`python -m dashboard`) and as the Lambda.
 - `infra/bootstrap/`: the account-level Terraform (the "bootstrap" stack), applied first and
