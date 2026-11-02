@@ -1,6 +1,10 @@
 # Checks skipped on purpose, each with its reason.
 compact: true
 quiet: true
+# The local Lambda build's unpacked bundle (gitignored): botocore's example JSON reads as secrets.
+# A regex on the path; it matches both `-d .` and the absolute `-d "$(pwd)"` the hook uses.
+skip-path:
+  - (^|/)build/lambda/
 skip-check:
   - CKV_AWS_18   # S3 server access logging: only admins and the Lambda reach these buckets, and logs would not stop an admin
   - CKV_AWS_144  # S3 cross-region replication: the page is rebuilt twice a day; the state bucket is versioned and admin-only
