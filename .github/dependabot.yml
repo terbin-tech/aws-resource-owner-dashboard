@@ -18,6 +18,10 @@ updates:
         patterns:
           - boto3
           - botocore
+    ignore:
+      # botocore requires python-dateutil<3.0.0; remove this once a botocore release allows 3.x.
+      - dependency-name: python-dateutil
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: pre-commit
     directory: /
     schedule:
