@@ -206,6 +206,19 @@ def test_card_carries_its_resource_count():
     assert 'data-checks="0" data-rows="0"' in empty
 
 
+def test_find_me_suggests_every_username_once():
+    users = [("a1", "Student-B"), ("a2", "student-a"), ("a3", "student-a")]
+    rows = [make_row(res("volume", f"vol-0example00000000{n}"), user=u) for n, u in users]
+    evil = make_row(res("volume", "vol-0example0000000a4"), user='x" onfocus="alert(1)')
+    page = render_page(make_report([*rows, evil]), CFG)
+    assert '<input id="find-me" type="text" list="usernames"' in page
+    assert (
+        '<datalist id="usernames"><option value="student-a"></option>'
+        '<option value="Student-B"></option>'
+        '<option value="x&quot; onfocus=&quot;alert(1)"></option></datalist>'
+    ) in page
+
+
 def test_find_me_controls_and_user_attributes():
     row = make_row(res("eip", "eipalloc-1"), age_days=30)
     page = render_page(make_report([row]), CFG)

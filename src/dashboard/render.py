@@ -368,6 +368,10 @@ def _header(report: Report) -> str:
     options = ['<option value="">All cohorts</option>']
     options += [f'<option value="{e(c)}">{e(c)}</option>' for c in report.cohorts]
     options.append('<option value="-">No cohort</option>')
+    # The browser suggests a full username while it is typed; the filter still matches
+    # the whole name (https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/datalist).
+    names = sorted({c.name for c in report.cards}, key=lambda n: (n.casefold(), n))
+    usernames = "".join(f'<option value="{e(n)}"></option>' for n in names)
     return (
         "<header><h1>What did I forget to delete?</h1>"
         "<p>Type your username, delete what you no longer need.</p>"
@@ -378,10 +382,11 @@ def _header(report: Report) -> str:
         ' <span class="muted">showing <span id="cohort-label">all cohorts</span></span></p>'
         '<p><input id="only-checks" type="checkbox"> '
         '<label for="only-checks">Only show students with something to check</label></p>'
-        '<p><label for="find-me">Find me</label> <input id="find-me" type="text" '
+        '<p><label for="find-me">Find me</label> <input id="find-me" type="text" list="usernames" '
         'autocomplete="off" spellcheck="false" placeholder="your IAM username"> '
         '<button id="forget-me" type="button">Forget me</button> <span class="muted">'
         "remembered on this device only</span></p>"
+        f'<datalist id="usernames">{usernames}</datalist>'
         '<p id="showing" hidden>Showing only <strong id="showing-name"></strong> · '
         '<button id="show-all" type="button">Show everyone</button></p>'
         '<p class="banner ok" id="all-clear" hidden>All clear: nothing running for this '
