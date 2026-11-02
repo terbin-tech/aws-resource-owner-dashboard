@@ -42,6 +42,9 @@ pip install -e '.[dev]' && pre-commit install
 python -m dashboard demo    # fake data, no AWS: writes out-demo/index.html
 ```
 
+With uv, the first two lines become `uv venv --seed --python 3.14 && uv pip install -e '.[dev]'`,
+then `. .venv/bin/activate && pre-commit install`.
+
 To scan the real account you also need Terraform 1.16, AWS CLI v2 (2.32 or later for
 `aws login`) and an IAM user with MFA in the course account:
 
@@ -172,9 +175,9 @@ the smoke test around 07:00 or 17:00 Europe/Berlin: LookupEvents' rate limit is 
 - **Never** set a `DEBUG` log level, locally or in Lambda: botocore would dump CloudTrail
   responses. Delete `out/` after each use; it holds live data.
 
-**Lambda bundle:** `requirements-lambda.txt` pins boto3 and its dependencies with hashes,
-and Dependabot keeps it current. To regenerate it by hand, keep both packages equal to
-`pyproject.toml`:
+**Lambda bundle:** `requirements-lambda.txt` pins boto3 and its dependencies with hashes.
+Dependabot's pull requests only flag new releases; the pins are bumped by hand. To regenerate
+the file, keep boto3 and botocore equal to `pyproject.toml`:
 ```bash
 rm -rf build/wheels && pip download --only-binary=:all: --platform manylinux2014_aarch64 \
   --python-version 3.14 --implementation cp --dest build/wheels "boto3==<version>" "botocore==<version>"
