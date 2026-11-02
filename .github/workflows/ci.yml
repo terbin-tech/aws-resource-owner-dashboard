@@ -33,7 +33,7 @@ jobs:
         run: |
           python -m pip install -e '.[dev]'
           python -m venv "$RUNNER_TEMP/checkov"
-          "$RUNNER_TEMP/checkov/bin/pip" install checkov==3.4.2
+          "$RUNNER_TEMP/checkov/bin/pip" install checkov==3.4.3
           echo "$RUNNER_TEMP/checkov/bin" >> "$GITHUB_PATH"
       - name: pre-commit, manual stage (every hook but the local denylist ones, plus tflint and checkov)
         env:
