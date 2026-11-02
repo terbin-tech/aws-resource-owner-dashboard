@@ -93,6 +93,7 @@ JS = """
   var who = document.getElementById("find-me");
   var forget = document.getElementById("forget-me");
   var allClear = document.getElementById("all-clear");
+  var notFlagged = document.getElementById("not-flagged");
   var noMatch = document.getElementById("no-match");
   var showing = document.getElementById("showing");
   var showingName = document.getElementById("showing-name");
@@ -137,6 +138,7 @@ JS = """
     var items = document.querySelectorAll("[data-cohort]");
     var matched = 0;
     var todo = 0;
+    var rows = 0;
     var shown = 0;
     var marked = 0;
     for (var i = 0; i < items.length; i++) {
@@ -152,9 +154,11 @@ JS = """
       if (!hide && u !== "") {
         matched += 1;
         todo += Number(el.getAttribute("data-checks") || "0");
+        rows += Number(el.getAttribute("data-rows") || "0");
       }
     }
-    allClear.hidden = u === "" || matched === 0 || todo > 0;
+    allClear.hidden = u === "" || matched === 0 || todo > 0 || rows > 0;
+    notFlagged.hidden = u === "" || matched === 0 || todo > 0 || rows === 0;
     noMatch.hidden = u === "" || matched > 0;
     showing.hidden = u === "";
     showingName.textContent = who.value.trim();
@@ -380,8 +384,10 @@ def _header(report: Report) -> str:
         "remembered on this device only</span></p>"
         '<p id="showing" hidden>Showing only <strong id="showing-name"></strong> · '
         '<button id="show-all" type="button">Show everyone</button></p>'
-        '<p class="banner ok" id="all-clear" hidden>All clear: nothing to check for this '
+        '<p class="banner ok" id="all-clear" hidden>All clear: nothing running for this '
         "username.</p>"
+        '<p class="banner" id="not-flagged" hidden>Nothing flagged yet, but resources are '
+        "still running for this username. Delete what you no longer need.</p>"
         '<p class="banner" id="no-match" hidden>Nothing found for this username. Check the '
         "spelling, or you have nothing running.</p></header>"
     )
@@ -398,7 +404,7 @@ def _card(card: Card, cfg: Config, rank: int, alpha: int) -> str:
     head = f"<h3>{e(card.name)} {cohort}</h3>"
     attrs = (
         f' id="card-{e(card.name)}"{_cohort_attr(card.cohort)}'
-        f' data-rank="{rank}" data-alpha="{alpha}" data-checks="{to_check}"{_user_attr(card.name)}'
+        f' data-rank="{rank}" data-alpha="{alpha}" data-checks="{to_check}" data-rows="{len(card.rows)}"{_user_attr(card.name)}'
     )
     if not card.rows:
         return f'<article class="card clean"{attrs}>{head}<p>No resources running.</p></article>'

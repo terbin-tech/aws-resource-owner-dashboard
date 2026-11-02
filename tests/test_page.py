@@ -177,14 +177,33 @@ def test_check_marks_in_card_rows():
     assert '<p class="muted">1 to check · 2 resources</p>' in page
 
 
-def test_all_clear_counts_card_marks():
+def test_all_clear_only_when_nothing_runs():
     assert 'getAttribute("data-checks")' in JS
     assert "data-action" not in JS
+    assert 'allClear.hidden = u === "" || matched === 0 || todo > 0 || rows > 0' in JS
     page = render_page(make_report(), CFG)
     assert (
         '<p class="banner ok" id="all-clear" hidden>'
-        "All clear: nothing to check for this username.</p>"
+        "All clear: nothing running for this username.</p>"
     ) in page
+
+
+def test_unflagged_resources_get_their_own_banner():
+    assert 'notFlagged.hidden = u === "" || matched === 0 || todo > 0 || rows === 0' in JS
+    page = render_page(make_report(), CFG)
+    assert (
+        '<p class="banner" id="not-flagged" hidden>Nothing flagged yet, but resources are '
+        "still running for this username. Delete what you no longer need.</p>"
+    ) in page
+
+
+def test_card_carries_its_resource_count():
+    a = make_row(res("volume", "vol-0example0000000a1"))
+    b = make_row(res("volume", "vol-0example0000000a2"))
+    page = render_page(make_report([a, b], cards=[Card("student-a", "DV_FT", [a, b])]), CFG)
+    assert 'data-checks="0" data-rows="2"' in page
+    empty = render_page(make_report(cards=[Card("student-b", "DV_FT", [])]), CFG)
+    assert 'data-checks="0" data-rows="0"' in empty
 
 
 def test_find_me_controls_and_user_attributes():
