@@ -18,6 +18,13 @@ regexes = ['''111122223333''', '''123456789012''']
 description = "Provider hashes in the Terraform lock file are not account IDs"
 paths = ['''(^|/)\.terraform\.lock\.hcl$''']
 
+[[rules.allowlists]]
+description = "Wheel hashes in the Lambda requirements are not account IDs"
+condition = "AND"
+regexTarget = "line"
+regexes = ['''--hash=sha256:[0-9a-f]{64}''']
+paths = ['''(^|/)requirements-lambda\.txt$''']
+
 [[rules]]
 id = "aws-resource-id"
 description = "Real EC2/VPC resource IDs (17 hex digits). Placeholders contain 'example' and do not match."
