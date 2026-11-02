@@ -63,6 +63,17 @@ def test_copy_package_skips_bytecode(tmp_path):
     assert found == ["dashboard", "dashboard/handler.py"]
 
 
+def test_install_leftovers_stay_out_of_the_bundle(tmp_path):
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "bin" / "jp.py").write_text("#!/home/someone/.venv/bin/python\n")
+    (tmp_path / ".lock").write_text("")
+    (tmp_path / "jmespath").mkdir()
+    (tmp_path / "jmespath" / "__init__.py").write_text("")
+    build_lambda.drop_install_leftovers(tmp_path)
+    found = sorted(p.relative_to(tmp_path).as_posix() for p in tmp_path.rglob("*"))
+    assert found == ["jmespath", "jmespath/__init__.py"]
+
+
 def test_local_run_env_round_trips_through_config_from_env():
     cfg = Config(cohort_groups={"DV_FT": "DV_FT"})
     assert config_from_env(lambda_env(cfg, "example-report-bucket")) == replace(

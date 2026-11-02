@@ -136,7 +136,7 @@ terraform -chdir=infra/app init -backend-config=backend.hcl
 
 **Each deploy**, from a clean checkout of `main`:
 ```bash
-python scripts/build_lambda.py                                    # reproducible build/lambda.zip
+python scripts/build_lambda.py                                    # reproducible build/lambda.zip; needs uv
 install -d -m 700 out
 terraform -chdir=infra/app plan -no-color -out=../../out/tfplan > out/plan.txt 2>&1
 bash scripts/tf_summary.sh out/plan.txt                           # masked; review out/plan.txt yourself

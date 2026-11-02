@@ -22,23 +22,24 @@ FIXED_TIME = (1980, 1, 1, 0, 0, 0)  # the earliest time a zip entry can hold
 
 
 def install_deps(target: Path) -> None:
+    uv = shutil.which("uv")
+    if uv is None:
+        raise SystemExit("uv not found: the build installs the wheels with uv")
+    # uv writes no bytecode unless asked (--compile-bytecode), and the platform names the
+    # Lambda arm64 runtime (uv pip install --help).
     subprocess.run(  # noqa: S603 - fixed arguments, no shell
         [
-            sys.executable,
-            "-m",
+            uv,
             "pip",
             "install",
             "--quiet",
             "--require-hashes",
             "--no-deps",
-            "--no-compile",
             "--only-binary=:all:",
-            "--platform",
-            "manylinux2014_aarch64",
+            "--python-platform",
+            "aarch64-manylinux2014",
             "--python-version",
             "3.14",
-            "--implementation",
-            "cp",
             "--target",
             str(target),
             "-r",
@@ -46,6 +47,13 @@ def install_deps(target: Path) -> None:
         ],
         check=True,
     )
+
+
+def drop_install_leftovers(target: Path) -> None:
+    # What the install leaves that Lambda never runs: uv's lock on the folder, and console
+    # scripts, whose first line names the local interpreter and so changes the zip.
+    (target / ".lock").unlink(missing_ok=True)
+    shutil.rmtree(target / "bin", ignore_errors=True)
 
 
 def copy_package(src: Path, target: Path) -> None:
@@ -69,6 +77,7 @@ def main() -> int:
     shutil.rmtree(BUILD, ignore_errors=True)
     BUILD.mkdir(parents=True)
     install_deps(BUILD)
+    drop_install_leftovers(BUILD)
     copy_package(ROOT / "src" / "dashboard", BUILD)
     make_zip(BUILD, ZIP)
     print(f"wrote {ZIP.relative_to(ROOT)}")
